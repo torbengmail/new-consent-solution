@@ -1,0 +1,6 @@
+@PrivacyService.Api_HostAddress = http://localhost:5042
+
+GET {{PrivacyService.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

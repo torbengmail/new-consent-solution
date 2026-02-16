@@ -1,0 +1,31 @@
+## .NET
+bin/
+obj/
+*.dll
+*.pdb
+*.exe
+*.user
+*.suo
+*.cache
+*.log
+
+## IDE
+.vs/
+.vscode/
+*.swp
+*~
+.idea/
+
+## OS
+.DS_Store
+Thumbs.db
+
+## Build artifacts
+coverage-results/
+coverage-report/
+TestResults/
+
+## Secrets
+appsettings.*.local.json
+*.pfx
+*.key

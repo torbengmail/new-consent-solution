@@ -1,0 +1,1290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Privacy Consent Platform &mdash; Architecture Documentation</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<style>
+  :root {
+    --sidebar-width: 260px;
+    --primary: #1a1a2e;
+    --primary-light: #16213e;
+    --accent: #0f3460;
+    --highlight: #e94560;
+    --bg: #f8f9fa;
+    --card-bg: #ffffff;
+    --text: #212529;
+    --text-muted: #6c757d;
+    --border: #dee2e6;
+    --code-bg: #f1f3f5;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; scroll-padding-top: 24px; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, sans-serif; color: var(--text); background: var(--bg); display: flex; min-height: 100vh; line-height: 1.6; }
+
+  /* ── Sidebar ── */
+  nav.sidebar {
+    position: fixed; top: 0; left: 0; bottom: 0;
+    width: var(--sidebar-width); background: var(--primary);
+    color: #ccc; overflow-y: auto; padding: 24px 0; z-index: 100;
+  }
+  nav.sidebar h2 { color: #fff; font-size: 15px; padding: 0 20px 16px; border-bottom: 1px solid rgba(255,255,255,.1); margin-bottom: 8px; }
+  nav.sidebar a {
+    display: block; padding: 7px 20px; color: #adb5bd; text-decoration: none;
+    font-size: 13px; transition: background .15s, color .15s;
+  }
+  nav.sidebar a:hover, nav.sidebar a.active { background: var(--accent); color: #fff; }
+  nav.sidebar .sub { padding-left: 36px; font-size: 12px; }
+
+  /* ── Main content ── */
+  main { margin-left: var(--sidebar-width); flex: 1; padding: 40px 48px 80px; max-width: 1100px; }
+  h1 { font-size: 28px; margin-bottom: 8px; color: var(--primary); }
+  h2 { font-size: 22px; margin: 48px 0 16px; padding-bottom: 8px; border-bottom: 2px solid var(--highlight); color: var(--primary); }
+  h3 { font-size: 17px; margin: 32px 0 12px; color: var(--accent); }
+  h4 { font-size: 15px; margin: 20px 0 8px; }
+  p, li { font-size: 14px; }
+  p { margin-bottom: 12px; }
+  ul, ol { margin: 0 0 16px 24px; }
+  li { margin-bottom: 4px; }
+  code { background: var(--code-bg); padding: 2px 5px; border-radius: 3px; font-size: 13px; }
+
+  /* ── Cards ── */
+  .card {
+    background: var(--card-bg); border: 1px solid var(--border);
+    border-radius: 8px; padding: 24px; margin: 16px 0;
+    box-shadow: 0 1px 3px rgba(0,0,0,.06);
+  }
+  .card-label {
+    display: inline-block; font-size: 11px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: .5px; color: var(--highlight);
+    margin-bottom: 8px;
+  }
+
+  /* ── Tables ── */
+  table { width: 100%; border-collapse: collapse; margin: 12px 0 24px; font-size: 13px; }
+  th { background: var(--primary); color: #fff; text-align: left; padding: 10px 12px; font-weight: 600; }
+  td { padding: 8px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  tr:hover td { background: #f1f3f5; }
+  td code { font-size: 12px; }
+
+  /* ── Mermaid containers ── */
+  .diagram-container { margin: 16px 0 24px; overflow-x: auto; }
+  pre.mermaid { background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; padding: 20px; }
+
+  /* ── Badge ── */
+  .badge {
+    display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 8px;
+    border-radius: 4px; color: #fff; margin-right: 4px;
+  }
+  .badge-get { background: #198754; }
+  .badge-post { background: #0d6efd; }
+  .badge-put { background: #fd7e14; }
+  .badge-patch { background: #6f42c1; }
+  .badge-delete { background: #dc3545; }
+
+  .tech-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .tech-grid .card { margin: 0; }
+
+  @media (max-width: 900px) {
+    nav.sidebar { position: static; width: 100%; }
+    main { margin-left: 0; padding: 24px; }
+    .tech-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════ SIDEBAR ═══════════════ -->
+<nav class="sidebar">
+  <h2>Privacy Consent Platform</h2>
+  <a href="#overview">System Overview</a>
+  <a href="#structure">Project Structure</a>
+  <a href="#tech-stack">Technology Stack</a>
+  <a href="#middleware">Middleware Pipeline</a>
+  <a href="#auth">Authentication &amp; Authorization</a>
+  <a href="#endpoints">API Endpoints</a>
+  <a href="#endpoints-userapi" class="sub">UserApi</a>
+  <a href="#endpoints-adminapi" class="sub">AdminApi</a>
+  <a href="#endpoints-dictionary" class="sub">Dictionary</a>
+  <a href="#endpoints-consentquery" class="sub">ConsentQuery</a>
+  <a href="#endpoints-consentdecision" class="sub">ConsentDecision</a>
+  <a href="#endpoints-consentsource" class="sub">ConsentSource</a>
+  <a href="#endpoints-dsr" class="sub">DsrService</a>
+  <a href="#endpoints-datamanagement" class="sub">DataManagement</a>
+  <a href="#services-app">Application Services</a>
+  <a href="#services-infra">Infrastructure Services</a>
+  <a href="#er-diagram">Database ER Diagram</a>
+  <a href="#seq-consent-decision">Seq: Consent Decision</a>
+  <a href="#seq-dsr">Seq: DSR Request</a>
+  <a href="#seq-enrichment">Seq: Enrichment</a>
+  <a href="#data-flow">Data Flow Overview</a>
+</nav>
+
+<!-- ═══════════════ MAIN ═══════════════ -->
+<main>
+
+<h1>Privacy Consent Platform</h1>
+<p>Comprehensive architecture documentation for the GDPR consent management platform. All diagrams render client-side via <a href="https://mermaid.js.org/" target="_blank">Mermaid.js</a>.</p>
+
+<!-- ──────────── 1. SYSTEM OVERVIEW ──────────── -->
+<h2 id="overview">System Overview</h2>
+<p>The Privacy Consent Platform is a <strong>.NET 9</strong> application that provides centralised GDPR consent collection, storage, enrichment and data-subject-rights fulfilment. It exposes three API surfaces &mdash; <em>Service API</em> (Basic Auth), <em>User API</em> (JWT Bearer), and <em>Admin API</em> (JWT Bearer with RBAC) &mdash; backed by PostgreSQL, Google Cloud Pub/Sub for event streaming, and Google Cloud Storage for file management.</p>
+
+<div class="diagram-container">
+<pre class="mermaid">
+flowchart TB
+    subgraph Clients
+        SVC["Service Clients\n(Basic Auth)"]
+        USR["End Users\n(JWT Bearer)"]
+        ADM["Admins\n(JWT Bearer + RBAC)"]
+    end
+
+    subgraph API["PrivacyService.Api"]
+        CTRL["Controllers\n(8 controllers, ~75 endpoints)"]
+        MW["Middleware Pipeline"]
+        SRV["Application Services"]
+    end
+
+    subgraph Worker["ConsentEnricher.Worker"]
+        ENR["EnrichmentService"]
+    end
+
+    subgraph GCP["Google Cloud Platform"]
+        PS["Cloud Pub/Sub\n(consent-events topic)"]
+        PS2["Cloud Pub/Sub\n(enriched-events topic)"]
+        GCS["Cloud Storage\n(file uploads)"]
+    end
+
+    PG[("PostgreSQL\n(consent + data_inventory schemas)")]
+    DK["Denmark API\n(external)"]
+    ZD["Zendesk API\n(external)"]
+    SMTP["SMTP Server\n(email)"]
+    DS["Downstream\nConsumers"]
+
+    SVC --> CTRL
+    USR --> CTRL
+    ADM --> CTRL
+    CTRL --> MW --> SRV
+    SRV --> PG
+    SRV --> PS
+    SRV --> GCS
+    SRV --> DK
+    SRV --> ZD
+    SRV --> SMTP
+    PS -- "push subscription" --> ENR
+    ENR --> PG
+    ENR --> PS2
+    PS2 --> DS
+</pre>
+</div>
+
+<!-- ──────────── 2. PROJECT STRUCTURE ──────────── -->
+<h2 id="structure">Project Structure</h2>
+<p>The solution follows a layered architecture with five core projects, one worker service, and four test projects.</p>
+
+<div class="diagram-container">
+<pre class="mermaid">
+flowchart BT
+    DOM["PrivacyConsent.Domain\n(models, value objects)"]
+    DAT["PrivacyConsent.Data\n(EF Core, queries, migrations)"]
+    INF["PrivacyConsent.Infrastructure\n(Pub/Sub, GCS, HTTP clients)"]
+    API["PrivacyService.Api\n(controllers, middleware, auth)"]
+    WRK["ConsentEnricher.Worker\n(enrichment pipeline)"]
+
+    TU["TestUtilities\n(shared fixtures)"]
+    T1["PrivacyService.Api.Tests"]
+    T2["ConsentEnricher.Worker.Tests"]
+    T3["PrivacyConsent.Data.Tests"]
+
+    DAT --> DOM
+    INF --> DOM
+    INF --> DAT
+    API --> DOM
+    API --> DAT
+    API --> INF
+    WRK --> DOM
+    WRK --> DAT
+    WRK --> INF
+
+    T1 --> API
+    T1 --> DAT
+    T1 --> INF
+    T1 --> TU
+    T2 --> WRK
+    T2 --> DAT
+    T2 --> INF
+    T2 --> TU
+    T3 --> DAT
+    T3 --> DOM
+    T3 --> TU
+
+    style DOM fill:#e8f5e9,stroke:#2e7d32,color:#000
+    style DAT fill:#e3f2fd,stroke:#1565c0,color:#000
+    style INF fill:#fff3e0,stroke:#e65100,color:#000
+    style API fill:#fce4ec,stroke:#c62828,color:#000
+    style WRK fill:#f3e5f5,stroke:#6a1b9a,color:#000
+    style TU fill:#f5f5f5,stroke:#757575,color:#000
+    style T1 fill:#f5f5f5,stroke:#757575,color:#000
+    style T2 fill:#f5f5f5,stroke:#757575,color:#000
+    style T3 fill:#f5f5f5,stroke:#757575,color:#000
+</pre>
+</div>
+
+<h3>Directory Layout</h3>
+<div class="card">
+<pre style="font-size:13px;line-height:1.5">
+src/
+  PrivacyConsent.Domain/          Domain models &amp; business logic
+  PrivacyConsent.Data/            EF Core DbContext, queries, migrations
+  PrivacyConsent.Infrastructure/  External integrations (Pub/Sub, GCS, HTTP)
+  PrivacyService.Api/             REST API (controllers, middleware, auth)
+  ConsentEnricher.Worker/         Background enrichment worker
+
+tests/
+  TestUtilities/                  Shared test fixtures &amp; helpers
+  PrivacyService.Api.Tests/       API integration tests
+  ConsentEnricher.Worker.Tests/   Worker service tests
+  PrivacyConsent.Data.Tests/      Data layer tests
+</pre>
+</div>
+
+<!-- ──────────── 3. TECHNOLOGY STACK ──────────── -->
+<h2 id="tech-stack">Technology Stack</h2>
+<div class="tech-grid">
+  <div class="card">
+    <span class="card-label">Runtime &amp; Framework</span>
+    <table>
+      <tr><td><strong>.NET SDK</strong></td><td>9.0</td></tr>
+      <tr><td><strong>ASP.NET Core</strong></td><td>9.0</td></tr>
+      <tr><td><strong>Entity Framework Core</strong></td><td>9.0.0</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <span class="card-label">Database &amp; Storage</span>
+    <table>
+      <tr><td><strong>PostgreSQL</strong></td><td>via Npgsql 9.0.0</td></tr>
+      <tr><td><strong>Google Cloud Storage</strong></td><td>4.10.0</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <span class="card-label">Messaging &amp; Resilience</span>
+    <table>
+      <tr><td><strong>Google Cloud Pub/Sub</strong></td><td>3.16.0+</td></tr>
+      <tr><td><strong>Polly</strong></td><td>8.5.0</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <span class="card-label">Auth &amp; Security</span>
+    <table>
+      <tr><td><strong>JWT Bearer</strong></td><td>9.0.0</td></tr>
+      <tr><td><strong>BCrypt.Net-Next</strong></td><td>4.0.3</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <span class="card-label">Testing</span>
+    <table>
+      <tr><td><strong>xUnit</strong></td><td>2.9.2</td></tr>
+      <tr><td><strong>NSubstitute</strong></td><td>5.3.0</td></tr>
+      <tr><td><strong>Testcontainers</strong></td><td>4.1.0 (PostgreSQL)</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <span class="card-label">External APIs</span>
+    <table>
+      <tr><td><strong>Denmark API</strong></td><td>User info, DSR</td></tr>
+      <tr><td><strong>Zendesk</strong></td><td>Ticket creation, files</td></tr>
+      <tr><td><strong>SMTP</strong></td><td>DSR notification emails</td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- ──────────── 4. MIDDLEWARE PIPELINE ──────────── -->
+<h2 id="middleware">Middleware Pipeline</h2>
+<p>Every HTTP request passes through the following middleware chain in order. Custom middleware handles correlation IDs and global exception handling, followed by standard ASP.NET Core middleware.</p>
+
+<div class="diagram-container">
+<pre class="mermaid">
+sequenceDiagram
+    participant C as Client
+    participant CID as CorrelationIdMiddleware
+    participant GEX as GlobalExceptionMiddleware
+    participant HSTS as HSTS
+    participant HTTPS as HTTPS Redirect
+    participant RL as RateLimiter<br/>(100 req/60s per IP)
+    participant AUTH as Authentication
+    participant AUTHZ as Authorization
+    participant CTRL as Controller
+
+    C->>CID: HTTP Request
+    CID->>CID: Extract/generate X-Correlation-Id
+    CID->>GEX: Forward
+    GEX->>HSTS: Forward
+    HSTS->>HTTPS: Forward (non-dev only)
+    HTTPS->>RL: Forward
+    RL->>AUTH: Forward
+    AUTH->>AUTH: Basic or JWT Bearer
+    AUTH->>AUTHZ: Forward
+    AUTHZ->>AUTHZ: Check roles/permissions/owners
+    AUTHZ->>CTRL: Dispatch to action
+    CTRL-->>GEX: Response (or exception)
+    GEX-->>CID: Response (500 on error)
+    CID-->>C: Response + X-Correlation-Id
+</pre>
+</div>
+
+<h3>Middleware Details</h3>
+<table>
+  <tr><th>Middleware</th><th>Responsibility</th></tr>
+  <tr><td><code>CorrelationIdMiddleware</code></td><td>Extracts or generates <code>X-Correlation-Id</code> header; adds to <code>HttpContext.Items</code> and response headers; wraps log scope.</td></tr>
+  <tr><td><code>GlobalExceptionMiddleware</code></td><td>Catches unhandled exceptions; returns 500 with unique <code>errorId</code> and correlation ID; hides details in production.</td></tr>
+  <tr><td>Rate Limiting</td><td>Fixed window: 100 requests per 60 seconds per IP address.</td></tr>
+  <tr><td>Authentication</td><td>Basic Auth scheme (default) for service API; JWT Bearer for user/admin APIs.</td></tr>
+  <tr><td>Authorization</td><td>Role-based via <code>[Authorize]</code>; owner-level filtering via <code>[RequireOwnerAccess]</code> filter.</td></tr>
+</table>
+
+<!-- ──────────── 5. AUTH & AUTHZ ──────────── -->
+<h2 id="auth">Authentication &amp; Authorization</h2>
+
+<div class="diagram-container">
+<pre class="mermaid">
+flowchart LR
+    subgraph ServiceAPI["Service API (v1/serviceapi)"]
+        BA["Basic Auth\n(username:password)"]
+        BAH["BasicAuthHandler"]
+        ACS["AccessControlService\n(BCrypt verify)"]
+    end
+
+    subgraph UserAPI["User API (v1/userapi)"]
+        JWT1["JWT Bearer Token"]
+        CID1["ConnectId Claims\n(sub, email, roles)"]
+    end
+
+    subgraph AdminAPI["Admin API (v1/adminapi)"]
+        JWT2["JWT Bearer Token"]
+        RBAC["Role-Based Permissions"]
+    end
+
+    BA --> BAH --> ACS
+    ACS --> CLAIMS["Claims Principal\n(name, user_id, permissions, owners)"]
+
+    JWT1 --> CID1
+    JWT2 --> RBAC
+
+    CLAIMS --> OAF["RequireOwnerAccess\nActionFilter"]
+    RBAC --> OAF
+
+    style ServiceAPI fill:#e3f2fd,stroke:#1565c0,color:#000
+    style UserAPI fill:#e8f5e9,stroke:#2e7d32,color:#000
+    style AdminAPI fill:#fff3e0,stroke:#e65100,color:#000
+</pre>
+</div>
+
+<h3>RBAC Class Model</h3>
+<div class="diagram-container">
+<pre class="mermaid">
+classDiagram
+    class User {
+        +int Id
+        +string Username
+        +string? Password
+        +string? Name
+        +string? Email
+        +bool IsConnectId
+    }
+    class Role {
+        +int Id
+        +string Name
+    }
+    class Permission {
+        +int Id
+        +string Name
+    }
+    class UserRole {
+        +int UserId
+        +int RoleId
+    }
+    class RolePermission {
+        +int RoleId
+        +int PermissionId
+    }
+    class UserOwner {
+        +int UserId
+        +int OwnerId
+    }
+
+    User "1" --> "*" UserRole
+    UserRole "*" --> "1" Role
+    Role "1" --> "*" RolePermission
+    RolePermission "*" --> "1" Permission
+    User "1" --> "*" UserOwner
+</pre>
+</div>
+
+<h3>AccessControlService</h3>
+<div class="card">
+  <p>The <code>AccessControlService</code> handles Basic Auth credential verification (BCrypt), caches user/role/permission lookups in <code>IMemoryCache</code> with configurable TTL, and provides owner-based access validation for the <code>[RequireOwnerAccess]</code> filter.</p>
+</div>
+
+<!-- ──────────── 6. API ENDPOINTS ──────────── -->
+<h2 id="endpoints">API Endpoints Reference</h2>
+<p>Eight controllers expose approximately 75 endpoints across three auth-gated API surfaces.</p>
+
+<!-- UserApiController -->
+<h3 id="endpoints-userapi">UserApiController <code>v1/userapi</code></h3>
+<p><span class="badge" style="background:var(--accent)">JWT Bearer</span></p>
+<table>
+  <tr><th>Method</th><th>Route</th><th>Parameters</th><th>Description</th></tr>
+  <tr><td><span class="badge badge-post">POST</span></td><td><code>dashboard/decisions-list-grouped</code></td><td><code>owner_id</code>, <code>adjust_by_context?</code>, <code>language?</code></td><td>Grouped consent decisions for dashboard</td></tr>
+  <tr><td><span class="badge badge-get">GET</span></td><td><code>dsr-requests</code></td><td>&mdash;</td><td>Get user's DSR requests</td></tr>
+  <tr><td><span class="badge badge-post">POST</span></td><td><code>data-subject-rights</code></td><td>Body: <code>DataSubjectRightsRequestDto</code></td><td>Create a DSR request</td></tr>
+  <tr><td><span class="badge badge-get">GET</span></td><td><code>dsr-texts</code></td><td><code>language?</code>, <code>augmented?</code></td><td>DSR-related translations</td></tr>
+  <tr><td><span class="badge badge-get">GET</span></td><td><code>legal-texts</code></td><td><code>language?</code>, <code>augmented?</code></td><td>Legal text translations</td></tr>
+  <tr><td><span class="badge badge-get">GET</span></td><td><code>pd-dump-links-extended</code></td><td><code>language?</code></td><td>Personal data dump links</td></tr>
+  <tr><td><span class="badge badge-post">POST</span></td><td><code>user-consent-decisions</code></td><td><code>owner_id</code>, <code>product_id?</code>, <code>expression_tag</code>, <code>language?</code></td><td>Get random expressions by product/tag</td></tr>
+  <tr><td><span class="badge badge-put">PUT</span></td><td><code>user-consent-decisions</code></td><td>Body: <code>List&lt;UserConsentDecisionForUserApiRequest&gt;</code></td><td>Save user consent decisions</td></tr>
+  <tr><td><span class="badge badge-get">GET</span></td><td><code>languages</code></td><td>&mdash;</td><td>Available languages</td></tr>
+  <tr><td><span class="badge badge-get">GET</span></td><td><code>ui-settings</code></td><td><code>language?</code>, <code>augmented?</code>, <code>referrer?</code></td><td>UI translations and theme</td></tr>
+</table>
+
+<!-- AdminApiController -->
+<h3 id="endpoints-adminapi">AdminApiController <code>v1/adminapi</code></h3>
+<p><span class="badge" style="background:var(--accent)">JWT Bearer + RBAC</span></p>
+<h4>Users</h4>
+<table>
+  <tr><th>Method</th><th>Route</th><th>Parameters</th><th>Description</th></tr>
+  <tr><td><span class="badge badge-get">GET</span></td><td><code>users</code></td><td><code>offset?</code>, <code>limit?</code></td><td>List admin users (paginated)</td></tr>
+  <tr><td><span class="badge badge-post">POST</span></td><td><code>users</code></td><td>Body: <code>AdminApiUserRequest</code></td><td>Create admin user</td></tr>
+  <tr><td><span class="badge badge-put">PUT</span></td><td><code>users/{user_id}</code></td><td><code>user_id</code> (path), Body: <code>AdminApiUserRequest</code></td><td>Update user roles/owners</td></tr>
+  <tr><td><span class="badge badge-delete">DELETE</span></td><td><code>users/{user_id}</code></td><td><code>user_id</code> (path)</td><td>Soft delete user</td></tr>
+  <tr><td><span class="badge badge-get">GET</span></td><td><code>users/reference-data</code></td><td>&mdash;</td><td>Roles and owners reference data</td></tr>
+  <tr><td><span class="badge badge-get">GET</span></td><td><code>userinfo</code></td><td>&mdash;</td><td>Current user info</td></tr>
+</table>
+
+<h4>Texts</h4>
+<table>
+  <tr><th>Method</th><th>Route</th><th>Parameters</th><th>Description</th></tr>
+  <tr><td><span class="badge badge-post">POST</span></td><td><code>texts/field</code></td><td>Body: <code>AdminApiTextFieldRequest</code></td><td>Create text field</td></tr>
+  <tr><td><span class="badge badge-put">PUT</span></td><td><code>texts/field</code></td><td>Body: <code>AdminApiTextFieldRequest</code></td><td>Update text field</td></tr>
+  <tr><td><span class="badge badge-get">GET</span></td><td><code>texts</code></td><td><code>owner_id</code>, <code>product_id?</code>, <code>language?</code></td><td>Get translations</td></tr>
+</table>
+
+<h4>Consents</h4>
+<table>
+  <tr><th>Method</th><th>Route</th><th>Parameters</th><th>Description</th></tr>
+  <tr><td><span class="badge badge-get">GET</span></td><td><code>consents/reference-data</code></td><td>&mdash;</td><td>Consent types, purposes, tags, statuses</td></tr>
+  <tr><td><span class="badge badge-get">GET</span></td><td><code>consents</code></td><td><code>group_channels?</code>, <code>offset?</code>, <code>limit?</code></td><td>List consents (paginated)</td></tr>
+  <tr><td><span class="badge badge-post">POST</span></td><td><code>consents</code></td><td>Body: <code>AdminApiConsentRequest</code></td><td>Create consent</td></tr>
+  <tr><td><span class="badge badge-get">GET</span></td><td><code>consents/{consent_id}</code></td><td><code>consent_id</code> (path)</td><td>Get consent by ID</td></tr>
+  <tr><td><span class="badge badge-put">PUT</span></td><td><code>consents/{consent_id}</code></td><td><code>consent_id</code> (path), Body: <code>AdminApiConsentRequest</code></td><td>Update consent</td></tr>
+  <tr><td><span class="badge badge-delete">DELETE</span></td><td><code>consents/{consent_id}</code></td><td><code>consent_id</code> (path)</td><td>Soft delete consent</td></tr>
+</table>
+
+<h4>Expressions</h4>
+<table>
+  <tr><th>Method</th><th>Route</th><th>Parameters</th><th>Description</th></tr>
+  <tr><td><span class="badge badge-get">GET</span></td><td><code>consents/{consent_id}/expressions</code></td><td><code>consent_id</code> (path)</td><td>Get expressions for consent</td></tr>
+  <tr><td><span class="badge badge-post">POST</span></td><td><code>consents/{consent_id}/expressions</code></td><td><code>consent_id</code> (path), Body: <code>AdminApiExpressionRequest</code></td><td>Create expression</td></tr>
+  <tr><td><span class="badge badge-get">GET</span></td><td><code>expressions/{expression_id}</code></td><td><code>expression_id</code> (path)</td><td>Get single expression</td></tr>
+  <tr><td><span class="badge badge-put">PUT</span></td><td><code>expressions/{expression_id}</code></td><td><code>expression_id</code> (path), Body: <code>AdminApiExpressionRequest</code></td><td>Update expression</td></tr>
+  <tr><td><span class="badge badge-get">GET</span></td><td><code>expressions/{expression_id}/texts</code></td><td><code>expression_id</code> (path)</td><td>Get expression texts</td></tr>
+  <tr><td><span class="badge badge-post">POST</span></td><td><code>expressions/{expression_id}/texts</code></td><td><code>expression_id</code> (path), Body: <code>AdminApiExpressionText</code></td><td>Create/upsert expression text</td></tr>
+  <tr><td><span class="badge badge-put">PUT</span></td><td><code>expressions/{expression_id}/texts/{language}</code></td><td><code>expression_id</code>, <code>language</code> (path), Body: <code>AdminApiExpressionText</code></td><td>Update expression text</td></tr>
+</table>
+
+<h4>Tags</h4>
+<table>
+  <tr><th>Method</th><th>Route</th><th>Parameters</th><th>Description</th></tr>
+  <tr><td><span class="badge badge-get">GET</span></td><td><code>tags/{tag_id}</code></td><td><code>tag_id</code> (path)</td><td>Get tag by ID</td></tr>
+  <tr><td><span class="badge badge-get">GET</span></td><td><code>tags</code></td><td>&mdash;</td><td>List all tags</td></tr>
+  <tr><td><span class="badge badge-post">POST</span></td><td><code>tags</code></td><td>Body: <code>AdminApiTagRequest</code></td><td>Create tag</td></tr>
+  <tr><td><span class="badge badge-delete">DELETE</span></td><td><code>tags</code></td><td><code>id</code>, <code>owner_id</code> (query)</td><td>Delete tag</td></tr>
+</table>
+
+<!-- DictionaryController -->
+<h3 id="endpoints-dictionary">DictionaryController <code>v1/serviceapi</code></h3>
+<p><span class="badge" style="background:#6c757d">Basic Auth</span></p>
+<table>
+  <tr><th>Method</th><th>Route</th><th>Parameters</th><th>Description</th></tr>
+  <tr><td><span class="badge badge-get">GET</span></td><td><code>dictionaries/consent-types</code></td><td>&mdash;</td><td>All consent types</td></tr>
+  <tr><td><span class="badge badge-get">GET</span></td><td><code>dictionaries/consent-purposes</code></td><td>&mdash;</td><td>All purpose categories</td></tr>
+  <tr><td><span class="badge badge-get">GET</span></td><td><code>dictionaries/expression-tags</code></td><td><code>owner_id?</code></td><td>Expression tags (optionally by owner)</td></tr>
+  <tr><td><span class="badge badge-get">GET</span></td><td><code>dictionaries/expression-statuses</code></td><td>&mdash;</td><td>Expression statuses</td></tr>
+  <tr><td><span class="badge badge-get">GET</span></td><td><code>dictionaries/languages</code></td><td>&mdash;</td><td>Available languages</td></tr>
+  <tr><td><span class="badge badge-get">GET</span></td><td><code>dictionaries/id-types</code></td><td>&mdash;</td><td>ID types</td></tr>
+  <tr><td><span class="badge badge-get">GET</span></td><td><code>dictionaries/owners</code></td><td>&mdash;</td><td>Owners</td></tr>
+  <tr><td><span class="badge badge-get">GET</span></td><td><code>dictionaries/products</code></td><td>&mdash;</td><td>Products</td></tr>
+  <tr><td><span class="badge badge-get">GET</span></td><td><code>dictionaries/owners-products</code></td><td>&mdash;</td><td>Owners with nested products</td></tr>
+  <tr><td><span class="badge badge-get">GET</span></td><td><code>texts</code></td><td><code>language?</code>, <code>owner_id</code>, <code>product_id?</code>, <code>augmented?</code></td><td>Get texts for owner/product</td></tr>
+  <tr><td><span class="badge badge-get">GET</span></td><td><code>texts/consent-expression</code></td><td><code>consent_id</code>, <code>expression_tag</code>, <code>language?</code></td><td>Consent expression text</td></tr>
+  <tr><td><span class="badge badge-get">GET</span></td><td><code>users/user-info</code></td><td>&mdash;</td><td>Current user info</td></tr>
+  <tr><td><span class="badge badge-get">GET</span></td><td><code>consents</code></td><td><code>use_case_id?</code>, <code>owner_id?</code></td><td>Get consents</td></tr>
+  <tr><td><span class="badge badge-get">GET</span></td><td><code>consents/{consent_id}</code></td><td><code>consent_id</code> (path)</td><td>Get consent by ID</td></tr>
+</table>
+
+<!-- ConsentQueryController -->
+<h3 id="endpoints-consentquery">ConsentQueryController <code>v1/serviceapi</code></h3>
+<p><span class="badge" style="background:#6c757d">Basic Auth</span></p>
+<table>
+  <tr><th>Method</th><th>Route</th><th>Parameters</th><th>Description</th></tr>
+  <tr><td><span class="badge badge-post">POST</span></td><td><code>decision-request-attempts</code></td><td><code>consent_id</code>, <code>user_id</code>, <code>id_type_id</code>, <code>expression_tag</code>, <code>exclude_positive?</code>, <code>exclude_negative?</code>, <code>user_consent_source_id?</code>, <code>language?</code></td><td>Post and get decision request</td></tr>
+  <tr><td><span class="badge badge-get">GET</span></td><td><code>decision-request-attempts</code></td><td><code>consent_id</code>, <code>user_id</code>, <code>id_type_id</code>, <code>expression_tag</code>, <code>language?</code></td><td>Get expressions for consent</td></tr>
+  <tr><td><span class="badge badge-post">POST</span></td><td><code>dashboard/consents-list-grouped</code></td><td><code>user_id</code>, <code>id_type_id</code>, <code>owner_id</code>, <code>expression_tag?</code>, <code>language?</code></td><td>Grouped consents for dashboard</td></tr>
+  <tr><td><span class="badge badge-get">GET</span></td><td><code>user-decision-history</code></td><td><code>consent_id</code>, <code>user_id</code>, <code>id_type_id</code></td><td>User decision history</td></tr>
+  <tr><td><span class="badge badge-post">POST</span></td><td><code>user-consent-decisions-batch</code></td><td>Body: <code>List&lt;UserConsentDecisionUniqueDto&gt;</code></td><td>Batch decisions (short form)</td></tr>
+  <tr><td><span class="badge badge-get">GET</span></td><td><code>user-consent-decisions-batch</code></td><td><code>owner_id</code>, <code>consent_id?</code>, <code>offset?</code></td><td>Paginated batch of decisions</td></tr>
+</table>
+
+<!-- ConsentDecisionController -->
+<h3 id="endpoints-consentdecision">ConsentDecisionController <code>v1/serviceapi</code></h3>
+<p><span class="badge" style="background:#6c757d">Basic Auth</span></p>
+<table>
+  <tr><th>Method</th><th>Route</th><th>Parameters</th><th>Description</th></tr>
+  <tr><td><span class="badge badge-post">POST</span></td><td><code>user-consent-decisions</code></td><td><code>owner_id</code>, <code>product_id?</code>, <code>user_id</code>, <code>id_type_id</code>, <code>expression_tag</code>, <code>language?</code></td><td>Get random expressions by product</td></tr>
+  <tr><td><span class="badge badge-put">PUT</span></td><td><code>user-consent-decisions</code></td><td>Body: <code>List&lt;UserConsentDecisionRequest&gt;</code></td><td>Save consent decisions</td></tr>
+  <tr><td><span class="badge badge-patch">PATCH</span></td><td><code>retract-last-user-consent-decision</code></td><td>Body: <code>RetractLastUserConsentDecisionRequest</code></td><td>Retract last decision</td></tr>
+  <tr><td><span class="badge badge-patch">PATCH</span></td><td><code>update-last-user-consent-decision</code></td><td>Body: <code>UpdateLastUserConsentDecisionRequest</code></td><td>Update last decision value</td></tr>
+</table>
+
+<!-- ConsentSourceController -->
+<h3 id="endpoints-consentsource">ConsentSourceController <code>v1/serviceapi</code></h3>
+<p><span class="badge" style="background:#6c757d">Basic Auth</span></p>
+<table>
+  <tr><th>Method</th><th>Route</th><th>Parameters</th><th>Description</th></tr>
+  <tr><td><span class="badge badge-post">POST</span></td><td><code>user-consent-sources</code></td><td>Body: <code>UserConsentSourceRequest</code></td><td>Create consent source</td></tr>
+  <tr><td><span class="badge badge-get">GET</span></td><td><code>user-consent-sources</code></td><td><code>owner_id</code>, <code>id?</code></td><td>Get sources for owner</td></tr>
+  <tr><td><span class="badge badge-put">PUT</span></td><td><code>user-consent-sources</code></td><td>Body: <code>UserConsentSourceDto</code></td><td>Update source</td></tr>
+  <tr><td><span class="badge badge-patch">PATCH</span></td><td><code>user-consent-sources</code></td><td>Body: <code>UserConsentSourcePatchRequest</code></td><td>Partial update source</td></tr>
+  <tr><td><span class="badge badge-delete">DELETE</span></td><td><code>user-consent-sources</code></td><td><code>id</code>, <code>owner_id</code></td><td>Delete source</td></tr>
+</table>
+
+<!-- DsrServiceController -->
+<h3 id="endpoints-dsr">DsrServiceController <code>v1/serviceapi</code></h3>
+<p><span class="badge" style="background:#6c757d">Basic Auth</span></p>
+<table>
+  <tr><th>Method</th><th>Route</th><th>Parameters</th><th>Description</th></tr>
+  <tr><td><span class="badge badge-get">GET</span></td><td><code>telenor-id-dsr/requests</code></td><td><code>user-id</code>, <code>email</code></td><td>Get DSR requests for user</td></tr>
+  <tr><td><span class="badge badge-post">POST</span></td><td><code>telenor-id-dsr/requests</code></td><td><code>user-id</code>, <code>email</code>, <code>dsr-type</code></td><td>Create DSR request</td></tr>
+  <tr><td><span class="badge badge-get">GET</span></td><td><code>telenor-id-dsr/data-dump-links</code></td><td><code>user-id</code></td><td>Personal data dump links</td></tr>
+  <tr><td><span class="badge badge-get">GET</span></td><td><code>dsr/requests</code></td><td><code>type</code>, <code>offset?</code>, <code>limit?</code></td><td>Get DSR requests by type</td></tr>
+  <tr><td><span class="badge badge-post">POST</span></td><td><code>dsr/requests</code></td><td><code>user-id</code>, <code>ticket-id?</code>, <code>type</code></td><td>Create DSR request</td></tr>
+  <tr><td><span class="badge badge-patch">PATCH</span></td><td><code>dsr/requests</code></td><td><code>user-id</code>, <code>ticket-id?</code>, <code>type</code>, <code>status</code></td><td>Update DSR request status</td></tr>
+  <tr><td><span class="badge badge-post">POST</span></td><td><code>dsr/auto-deletion-request</code></td><td><code>user-id</code>, <code>status</code></td><td>Handle auto-deletion request</td></tr>
+</table>
+
+<!-- DataManagementController -->
+<h3 id="endpoints-datamanagement">DataManagementController <code>v1/serviceapi</code></h3>
+<p><span class="badge" style="background:#6c757d">Basic Auth</span></p>
+<table>
+  <tr><th>Method</th><th>Route</th><th>Parameters</th><th>Description</th></tr>
+  <tr><td><span class="badge badge-get">GET</span></td><td><code>user-data-dump-json</code></td><td><code>user_id</code>, <code>id_type_id</code></td><td>User data dump (JSON)</td></tr>
+  <tr><td><span class="badge badge-get">GET</span></td><td><code>user-data-dump-csv</code></td><td><code>user_id</code>, <code>id_type_id</code></td><td>User data dump (CSV)</td></tr>
+  <tr><td><span class="badge badge-put">PUT</span></td><td><code>file-upload</code></td><td><code>user_id</code>, <code>ticket_id?</code>, <code>product_id</code>, <code>file_name</code>, file (form)</td><td>Upload personal data file</td></tr>
+  <tr><td><span class="badge badge-get">GET</span></td><td><code>file-upload-link</code></td><td><code>user_id</code>, <code>ticket_id?</code>, <code>product_id</code>, <code>file_name</code></td><td>Generate GCS upload link (30 min)</td></tr>
+  <tr><td><span class="badge badge-post">POST</span></td><td><code>id-type</code></td><td>Body: <code>IdTypeRequest</code></td><td>Create ID type</td></tr>
+  <tr><td><span class="badge badge-post">POST</span></td><td><code>id-mapping</code></td><td>Body: <code>IdMappingRequest</code></td><td>Create ID mapping</td></tr>
+  <tr><td><span class="badge badge-delete">DELETE</span></td><td><code>test-user</code></td><td><code>test_user_group</code></td><td>Delete test user data</td></tr>
+</table>
+
+<!-- ──────────── 7. APPLICATION SERVICES ──────────── -->
+<h2 id="services-app">Application Services</h2>
+
+<div class="diagram-container">
+<pre class="mermaid">
+classDiagram
+    class DecisionService {
+        +SaveDecisions(List~DecisionInput~, userId, idTypeId) List~long~
+    }
+    class IUserConsentQueries {
+        &lt;&lt;interface&gt;&gt;
+    }
+    class IMasterIdQueries {
+        &lt;&lt;interface&gt;&gt;
+    }
+    class IConsentQueries {
+        &lt;&lt;interface&gt;&gt;
+    }
+    class IConsentEventPublisher {
+        &lt;&lt;interface&gt;&gt;
+        +PublishDecisionAsync(auditId, ownerId?)
+        +PublishDecisionsAsync(auditIds, ownerId?)
+    }
+
+    DecisionService --> IUserConsentQueries : upsert decisions
+    DecisionService --> IMasterIdQueries : resolve master IDs
+    DecisionService --> IConsentQueries : validate consents
+    DecisionService --> IConsentEventPublisher : publish events
+</pre>
+</div>
+
+<div class="diagram-container">
+<pre class="mermaid">
+classDiagram
+    class DashboardService {
+        +AdjustOwnerIds(ownerIds, userId, idTypeId, token) List~int~
+    }
+    class IExpressionQueries {
+        &lt;&lt;interface&gt;&gt;
+    }
+    class IDenmarkApiClient {
+        &lt;&lt;interface&gt;&gt;
+        +IsUserAsync(userId, idTypeId, token) bool
+        +IsCbbUserAsync(userId, idTypeId, token) bool
+    }
+
+    DashboardService --> IExpressionQueries
+    DashboardService --> IDenmarkApiClient : check user status
+</pre>
+</div>
+
+<div class="diagram-container">
+<pre class="mermaid">
+classDiagram
+    class DataSubjectRightsService {
+        +GetOwnerIds(userId, idTypeId, token) List~int~
+        +DefaultDsrStatusMap(ownerId) Dictionary
+        +CreateOwnerMap(ownerIds, cached) List~DsrRightsDto~
+        +CreateDsrRequest(ownerId, userId, ...) string?
+        +GetPersonalDataLinks(ownerIds, ...) List~PersonalDataByOwnerDto~
+    }
+    class IDenmarkApiClient2["IDenmarkApiClient"] {
+        &lt;&lt;interface&gt;&gt;
+        +GetUserInfoAsync()
+        +GetUserRequestsAsync()
+        +CreateUserRequestAsync()
+        +GetFinishedRequestsAsync()
+        +GetFileSharingLinks()
+    }
+    class IZendeskClient {
+        &lt;&lt;interface&gt;&gt;
+        +CreateTicketAsync()
+        +GetRequestStatusesAsync()
+        +GetPersonalDataFilesAsync()
+        +GetFileSharingLinks()
+    }
+    class IEmailService {
+        &lt;&lt;interface&gt;&gt;
+        +SendDsrNotificationEmailAsync()
+    }
+    class UserDataCacheService2["UserDataCacheService"] {
+        +GetAndPutIfAbsent()
+        +PutValues()
+        +GetValuesInByOwner()
+    }
+
+    DataSubjectRightsService --> IDenmarkApiClient2 : Denmark API calls
+    DataSubjectRightsService --> IZendeskClient : ticket management
+    DataSubjectRightsService --> IEmailService : DSR notifications
+    DataSubjectRightsService --> UserDataCacheService2 : cache DSR status
+</pre>
+</div>
+
+<!-- ──────────── 8. INFRASTRUCTURE SERVICES ──────────── -->
+<h2 id="services-infra">Infrastructure Services</h2>
+
+<div class="diagram-container">
+<pre class="mermaid">
+classDiagram
+    class IConsentEventPublisher {
+        &lt;&lt;interface&gt;&gt;
+        +PublishDecisionAsync(auditId, ownerId?)
+        +PublishDecisionsAsync(auditIds, ownerId?)
+    }
+    class PubSubConsentEventPublisher {
+        -PublisherClient _publisher
+        -string _topicName
+    }
+    IConsentEventPublisher <|.. PubSubConsentEventPublisher
+
+    class IEnrichedEventPublisher {
+        &lt;&lt;interface&gt;&gt;
+        +PublishEnrichedAsync(EnrichedConsentDto)
+    }
+    class PubSubEnrichedEventPublisher {
+        -PublisherClient _publisher
+        -string _topicName
+    }
+    IEnrichedEventPublisher <|.. PubSubEnrichedEventPublisher
+
+    class IDenmarkApiClient {
+        &lt;&lt;interface&gt;&gt;
+        +GetUserInfoAsync()
+        +IsUserAsync()
+        +IsCbbUserAsync()
+        +IsNemIdValidatedAsync()
+        +GetUserRequestsAsync()
+        +CreateUserRequestAsync()
+        +GetPendingRequestsAsync()
+        +GetFinishedRequestsAsync()
+        +GetFileSharingLinks()
+    }
+    class DenmarkApiClient {
+        -HttpClient _httpClient
+    }
+    IDenmarkApiClient <|.. DenmarkApiClient
+
+    class IZendeskClient {
+        &lt;&lt;interface&gt;&gt;
+        +CreateTicketAsync()
+        +GetRequestStatusesAsync()
+        +GetPersonalDataFilesAsync()
+        +GetFileSharingLinks()
+    }
+    class ZendeskClient {
+        -HttpClient _httpClient
+    }
+    IZendeskClient <|.. ZendeskClient
+
+    class IEmailService {
+        &lt;&lt;interface&gt;&gt;
+        +SendEmailAsync()
+        +SendDsrNotificationEmailAsync()
+    }
+    class SmtpEmailService {
+        -SmtpClient _client
+    }
+    IEmailService <|.. SmtpEmailService
+
+    class IFileStorageService {
+        &lt;&lt;interface&gt;&gt;
+        +UploadFileAsync()
+        +GenerateUploadLinkAsync()
+        +DownloadFileAsync()
+    }
+    class GcsFileStorageService {
+        -StorageClient _storage
+    }
+    IFileStorageService <|.. GcsFileStorageService
+
+    class UserDataCacheService {
+        +GetAndPutIfAbsent~T~()
+        +PutValues()
+        +PutValue()
+        +GetValue~T~()
+        +GetValuesIn()
+        +GetValuesInByOwner()
+    }
+    class ICacheQueries {
+        &lt;&lt;interface&gt;&gt;
+    }
+    UserDataCacheService --> ICacheQueries
+</pre>
+</div>
+
+<!-- ──────────── 9. DATABASE ER DIAGRAM ──────────── -->
+<h2 id="er-diagram">Database ER Diagram</h2>
+<p>The database spans two PostgreSQL schemas: <code>consent</code> (33 tables) and <code>data_inventory</code> (5 tables).</p>
+
+<h3>Consent Schema &mdash; Core Entities</h3>
+<div class="diagram-container">
+<pre class="mermaid">
+erDiagram
+    Consent ||--o{ ConsentExpression : "has expressions"
+    Consent }o--|| ConsentType : "has type"
+    Consent ||--o{ UserConsent : "has decisions"
+    Consent ||--o{ UseCaseConsent : "linked to use cases"
+
+    ConsentExpression ||--o{ ConsentExpressionText : "has texts"
+    ConsentExpression ||--o{ ConsentExpressionTagList : "has tags"
+    ConsentExpression }o--|| ConsentExpressionStatus : "has status"
+
+    ConsentExpressionTagList }o--|| ConsentExpressionTag : "references tag"
+
+    UserConsent ||--o{ UserConsentAuditTrail : "has audit trail"
+    UserConsent }o--o| MasterId : "linked via master"
+
+    MasterId }o--|| IdType : "has type"
+
+    Consent {
+        int id PK
+        string name
+        string description
+        int owner_id
+        int purpose_id
+        int consent_type_id FK
+        int product_id
+        bool hide_by_default
+        datetime created_date
+        datetime modified_date
+        int parent_consent_id
+        bool is_group
+        datetime expiration_date
+        int consent_rank
+        datetime delete_at "soft delete"
+    }
+    ConsentType {
+        int id PK
+        string name
+        bool default_opt_in
+    }
+    ConsentExpression {
+        int id PK
+        int consent_id FK
+        string name
+        string description
+        int status_id FK
+        bool is_default
+        datetime created_date
+        datetime modified_date
+    }
+    ConsentExpressionStatus {
+        int id PK
+        string name
+    }
+    ConsentExpressionText {
+        int consent_expression_id PK
+        string language PK
+        string title
+        string short_text
+        string long_text
+    }
+    ConsentExpressionTag {
+        int id PK
+        string name
+        int owner_id
+    }
+    ConsentExpressionTagList {
+        int consent_expression_id PK
+        int consent_expression_tag_id PK
+    }
+    UserConsent {
+        int id PK
+        guid master_id FK
+        int consent_id FK
+        int consent_expression_id
+        bool is_agreed
+        datetime last_decision_date
+        int user_consent_source_id
+        string presented_language
+        string change_context "JSONB"
+        int id_type_id
+        int owner_id
+        string user_id
+    }
+    UserConsentAuditTrail {
+        long id PK
+        int decision_id FK
+        int consent_expression_id
+        bool is_agreed
+        datetime date
+        string presented_language
+        int user_consent_source_id
+        string change_context "JSONB"
+        string user_id
+        int id_type_id
+    }
+    MasterId {
+        guid id PK
+        string user_id
+        int id_type_id FK
+        bool is_device_id
+    }
+    IdType {
+        int id PK
+        string name
+    }
+    UseCaseConsent {
+        int use_case_id PK
+        int consent_id PK
+    }
+</pre>
+</div>
+
+<h3>Consent Schema &mdash; Sources, Requests &amp; Tracking</h3>
+<div class="diagram-container">
+<pre class="mermaid">
+erDiagram
+    UserConsentSource }o--|| UserConsentSourceType : "has type"
+
+    UserConsentSource {
+        int id PK
+        string name
+        string description
+        int user_consent_source_type_id FK
+        int owner_id
+        int product_id
+    }
+    UserConsentSourceType {
+        int id PK
+        string name
+    }
+    RequestAttempt {
+        int id PK
+        guid master_id
+        int consent_id
+        int consent_expression_id
+        string presented_language
+        datetime last_asked_date
+        int attempts_count
+        int user_consent_source_id
+        string user_id
+        int id_type_id
+    }
+    RequestAttemptAuditTrail {
+        int id PK
+        int attempt_id
+        datetime date
+        string presented_language
+        int consent_expression_id
+        string user_id
+        int id_type_id
+    }
+    DsrTracking {
+        string ticket_id PK
+        string user_id PK
+        int id_type_id PK
+        string type PK
+        string status
+        datetime created_at
+        datetime updated_at
+    }
+    UserDataCache {
+        string user_id PK
+        int id_type_id PK
+        string data_key PK
+        string data_value "JSONB"
+        datetime modified_date
+    }
+    UserConsentDecisionsBatch {
+        int id PK
+        string status
+        string download_url
+        datetime created_at
+        datetime updated_at
+    }
+    IdMap {
+        int id_type_id PK
+        string name
+    }
+</pre>
+</div>
+
+<h3>Consent Schema &mdash; RBAC &amp; Admin</h3>
+<div class="diagram-container">
+<pre class="mermaid">
+erDiagram
+    User ||--o{ UserRole : "has roles"
+    User ||--o{ UserOwner : "has owners"
+    UserRole }o--|| Role : "references"
+    Role ||--o{ RolePermission : "has permissions"
+    RolePermission }o--|| Permission : "references"
+
+    User {
+        int id PK
+        string username
+        string password
+        string name
+        string email
+        bool is_connect_id
+    }
+    Role {
+        int id PK
+        string name
+    }
+    Permission {
+        int id PK
+        string name
+    }
+    UserRole {
+        int user_id PK
+        int role_id PK
+    }
+    RolePermission {
+        int role_id PK
+        int permission_id PK
+    }
+    UserOwner {
+        int user_id PK
+        int owner_id PK
+    }
+    AdminApiAuditTrail {
+        int id PK
+        int user_id
+        string action
+        string entity_type
+        string entity_id
+        string details "JSONB"
+        datetime date
+    }
+    AdminTranslation {
+        int id PK
+        string lang_code
+        string translations "JSONB"
+        string augmented_translations "JSONB"
+        int owner_id
+        int product_id
+    }
+    Language {
+        string name PK
+        string description
+        string flag_key
+    }
+    Skin {
+        int id PK
+        string skin
+        string hide_sections
+        int owner_id
+        int product_id
+        int referrer
+    }
+    TestUserGroup {
+        int id PK
+        string name
+    }
+    TestUser {
+        int group_id PK
+        string user_id PK
+        int id_type_id PK
+    }
+    ProductConnectId {
+        int id PK
+        int product_id
+        string connect_id_service
+    }
+</pre>
+</div>
+
+<h3>Data Inventory Schema</h3>
+<div class="diagram-container">
+<pre class="mermaid">
+erDiagram
+    Owner ||--o{ Product : "has products"
+
+    Owner {
+        int id PK
+        string name
+        int owner_type_id
+        int registration_country_id
+        int owner_rank
+        string default_language
+    }
+    Product {
+        int id PK
+        string name
+        int owner_id FK
+        int product_group_id
+        string connect_id_name
+        int product_rank
+    }
+    PurposeCategory {
+        int id PK
+        string name
+    }
+    UseCase {
+        int id PK
+        string name
+        int purpose_category_id
+        int owner_id
+        int state_id
+    }
+    LegalBasis {
+        int id PK
+        string name
+        bool is_legitimate_interest
+    }
+</pre>
+</div>
+
+<!-- ──────────── 10a. CONSENT DECISION SEQUENCE ──────────── -->
+<h2 id="seq-consent-decision">Sequence: Consent Decision Flow</h2>
+<p>Traces the path from a client saving consent decisions through to Pub/Sub event publication.</p>
+
+<div class="diagram-container">
+<pre class="mermaid">
+sequenceDiagram
+    participant C as Client
+    participant CTRL as ConsentDecisionController
+    participant DS as DecisionService
+    participant MIQ as IMasterIdQueries
+    participant CQ as IConsentQueries
+    participant UCQ as IUserConsentQueries
+    participant PUB as PubSubConsentEventPublisher
+    participant PS as Cloud Pub/Sub
+
+    C->>CTRL: PUT /v1/serviceapi/user-consent-decisions
+    CTRL->>DS: SaveDecisions(decisions, userId, idTypeId)
+    DS->>MIQ: GetOrCreateMasterId(userId, idTypeId)
+    MIQ-->>DS: masterId (Guid)
+    DS->>CQ: ValidateConsents(consentIds)
+    CQ-->>DS: validated
+    loop For each decision
+        DS->>UCQ: UpsertDecision(masterId, decision)
+        UCQ-->>DS: auditTrailId (long)
+    end
+    DS->>PUB: PublishDecisionsAsync(auditIds, ownerId)
+    PUB->>PS: Publish messages to consent-events topic
+    PS-->>PUB: ack
+    PUB-->>DS: done
+    DS-->>CTRL: List of auditTrailIds
+    CTRL-->>C: 200 OK [auditTrailIds]
+</pre>
+</div>
+
+<!-- ──────────── 10b. DSR SEQUENCE ──────────── -->
+<h2 id="seq-dsr">Sequence: DSR Request Flow</h2>
+<p>Shows how a data-subject-rights request is routed to the appropriate external system depending on the owner.</p>
+
+<div class="diagram-container">
+<pre class="mermaid">
+sequenceDiagram
+    participant C as Client
+    participant CTRL as UserApiController
+    participant DSR as DataSubjectRightsService
+    participant CACHE as UserDataCacheService
+    participant DK as DenmarkApiClient
+    participant ZD as ZendeskClient
+    participant EM as SmtpEmailService
+
+    C->>CTRL: POST /v1/userapi/data-subject-rights
+    CTRL->>DSR: CreateDsrRequest(ownerId, userId, ...)
+
+    alt Denmark owner
+        DSR->>DK: CreateUserRequestAsync(idTypeId, token, params)
+        DK-->>DSR: ticketId
+    else Zendesk owner
+        DSR->>ZD: CreateTicketAsync(subject, body, email)
+        ZD-->>DSR: ticketId
+    else Email-only owner
+        DSR->>EM: SendDsrNotificationEmailAsync(userId, email, right)
+        EM-->>DSR: messageId
+    end
+
+    DSR->>CACHE: PutValue(userId, dsrStatus)
+    CACHE-->>DSR: cached
+    DSR-->>CTRL: ticketId / messageId
+    CTRL-->>C: 200 OK { message, ticket_id }
+</pre>
+</div>
+
+<!-- ──────────── 10c. ENRICHMENT SEQUENCE ──────────── -->
+<h2 id="seq-enrichment">Sequence: Consent Enrichment Flow</h2>
+<p>The enrichment worker receives Pub/Sub push notifications, enriches decision data with consent metadata, and republishes to a downstream topic.</p>
+
+<div class="diagram-container">
+<pre class="mermaid">
+sequenceDiagram
+    participant PS as Cloud Pub/Sub<br/>(consent-events)
+    participant WRK as Worker POST /enrich
+    participant ENR as EnrichmentService
+    participant EQ as EnricherQueries
+    participant PG as PostgreSQL
+    participant PUB as PubSubEnrichedEventPublisher
+    participant PS2 as Cloud Pub/Sub<br/>(enriched-events)
+    participant DS as Downstream Consumers
+
+    PS->>WRK: Push notification (base64 JSON)
+    WRK->>WRK: Decode message, extract decision_audit_id
+    WRK->>ENR: EnrichConsentValueAsync(decisionAuditId)
+    ENR->>EQ: GetConsentRelations(decisionAuditId)
+    EQ->>PG: JOIN query across consent tables
+    PG-->>EQ: ConsentRelationRows
+    EQ-->>ENR: raw data
+    ENR->>ENR: ProcessResults(rows)
+    ENR->>ENR: DefineKeySet(ownerId)
+    ENR->>ENR: FilterByKeySet(enrichedDto, keySet)
+    ENR-->>WRK: EnrichedConsentDto
+    WRK->>PUB: PublishEnrichedAsync(enrichedDto)
+    PUB->>PS2: Publish to enriched-events topic
+    PS2->>DS: Push to downstream consumers
+    PUB-->>WRK: ack
+    WRK-->>PS: 200 OK (ack push)
+</pre>
+</div>
+
+<!-- ──────────── 11. DATA FLOW OVERVIEW ──────────── -->
+<h2 id="data-flow">Data Flow Overview</h2>
+<p>End-to-end data flow from consent collection through enrichment to downstream consumers and data-subject-rights fulfilment.</p>
+
+<div class="diagram-container">
+<pre class="mermaid">
+flowchart LR
+    subgraph Collection["Consent Collection"]
+        SVC["Service Clients"]
+        USR["End Users"]
+        ADM["Admin Portal"]
+    end
+
+    subgraph API["PrivacyService.Api"]
+        DC["ConsentDecision\nController"]
+        QC["ConsentQuery\nController"]
+        DSR["DsrService\nController"]
+        DM["DataManagement\nController"]
+    end
+
+    subgraph Storage["Persistence"]
+        PG[("PostgreSQL\nconsent schema")]
+        PG2[("PostgreSQL\ndata_inventory")]
+        GCS["Google Cloud\nStorage"]
+    end
+
+    subgraph Events["Event Pipeline"]
+        PS1["Pub/Sub\nconsent-events"]
+        WRK["Enrichment\nWorker"]
+        PS2["Pub/Sub\nenriched-events"]
+    end
+
+    subgraph External["External Systems"]
+        DK["Denmark API"]
+        ZD["Zendesk"]
+        SMTP["SMTP"]
+    end
+
+    DS["Downstream\nConsumers"]
+
+    SVC --> DC
+    USR --> DC
+    SVC --> QC
+    ADM --> API
+
+    DC --> PG
+    DC --> PS1
+    QC --> PG
+    DSR --> DK
+    DSR --> ZD
+    DSR --> SMTP
+    DM --> GCS
+    DM --> PG
+
+    PS1 --> WRK
+    WRK --> PG
+    WRK --> PS2
+    PS2 --> DS
+
+    style Collection fill:#e8f5e9,stroke:#2e7d32,color:#000
+    style API fill:#e3f2fd,stroke:#1565c0,color:#000
+    style Storage fill:#fff3e0,stroke:#e65100,color:#000
+    style Events fill:#f3e5f5,stroke:#6a1b9a,color:#000
+    style External fill:#fce4ec,stroke:#c62828,color:#000
+</pre>
+</div>
+
+<hr style="margin-top:48px">
+<p style="color:var(--text-muted);font-size:12px;margin-top:16px">Generated for PrivacyConsentPlatform &mdash; .NET 9 &bull; PostgreSQL &bull; Google Cloud Platform</p>
+
+</main>
+
+<script>
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'default',
+    securityLevel: 'loose',
+    flowchart: { useMaxWidth: true, htmlLabels: true },
+    sequence: { useMaxWidth: true, actorMargin: 30, messageFontSize: 12 },
+    er: { useMaxWidth: true, fontSize: 12 }
+  });
+
+  // Highlight active sidebar link on scroll
+  const sections = document.querySelectorAll('h2[id], h3[id]');
+  const navLinks = document.querySelectorAll('nav.sidebar a');
+  window.addEventListener('scroll', () => {
+    let current = '';
+    sections.forEach(s => {
+      if (window.scrollY >= s.offsetTop - 80) current = s.id;
+    });
+    navLinks.forEach(a => {
+      a.classList.toggle('active', a.getAttribute('href') === '#' + current);
+    });
+  });
+</script>
+</body>
+</html>
