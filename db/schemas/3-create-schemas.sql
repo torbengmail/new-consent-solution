@@ -1,0 +1,3 @@
+\connect privacy;
+CREATE SCHEMA IF NOT EXISTS consent AUTHORIZATION privacy;
+CREATE SCHEMA IF NOT EXISTS data_inventory AUTHORIZATION privacy;

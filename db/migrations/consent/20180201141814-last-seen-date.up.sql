@@ -1,0 +1,1 @@
+ALTER TABLE consent.user_consent ADD COLUMN last_seen_date TIMESTAMPTZ DEFAULT now();

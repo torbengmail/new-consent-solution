@@ -1,0 +1,2 @@
+ALTER TABLE consent.request_attempt ADD COLUMN user_consent_source_id INT REFERENCES consent.user_consent_source (id);
+ALTER TABLE consent.request_attempt_audit_trail ADD COLUMN user_consent_source_id INT REFERENCES consent.user_consent_source (id);

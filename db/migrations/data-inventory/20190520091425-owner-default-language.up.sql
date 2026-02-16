@@ -1,0 +1,1 @@
+ALTER TABLE data_inventory.owner ADD default_language TEXT DEFAULT 'en' NOT NULL; -- it's not possible to specify reference to consent.language because data inventory doesn't know anything about "consent" schema

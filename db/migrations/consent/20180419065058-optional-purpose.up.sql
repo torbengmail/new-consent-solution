@@ -1,0 +1,1 @@
+ALTER TABLE consent.consent ALTER COLUMN purpose_id DROP NOT NULL;

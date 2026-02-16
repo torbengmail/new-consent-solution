@@ -1,0 +1,1 @@
+DROP TABLE IF EXISTS consent.consent_group_text;

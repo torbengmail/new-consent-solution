@@ -4,36 +4,32 @@ using Npgsql;
 namespace TestUtilities;
 
 /// <summary>
-/// Shared helpers for resolving the Clojure project root and applying
+/// Shared helpers for resolving the database SQL root and applying
 /// SQL migrations/seed data. Used by all test factories/fixtures.
 /// </summary>
 public static class ClojureProjectHelper
 {
     /// <summary>
-    /// Resolves the path to the sibling Clojure project (dk-s11008-privacy-service-main)
-    /// relative to the test assembly output directory.
+    /// Resolves the path to the db/ directory at the repository root.
+    /// Works from any test assembly output directory (bin/Debug/net9.0/).
     /// </summary>
     public static string ResolveClojureProjectRoot()
     {
+        // Walk up from bin/Debug/net9.0/ to the repo root
         var assemblyDir = AppContext.BaseDirectory;
-        var repoRoot = Path.GetFullPath(Path.Combine(assemblyDir, "..", "..", "..", "..", ".."));
-        var privacyServiceDir = Path.GetDirectoryName(repoRoot)!;
-        var clojureRoot = Path.Combine(privacyServiceDir, "dk-s11008-privacy-service-main");
+        var candidate = Path.GetFullPath(Path.Combine(assemblyDir, "..", "..", "..", "..", ".."));
 
-        if (!Directory.Exists(clojureRoot))
-        {
-            var sourceDir = Path.GetFullPath(Path.Combine(assemblyDir, "..", "..", ".."));
-            clojureRoot = Path.GetFullPath(Path.Combine(sourceDir, "..", "..", "..", "dk-s11008-privacy-service-main"));
-        }
+        if (Directory.Exists(Path.Combine(candidate, "db", "schemas")))
+            return candidate;
 
-        if (!Directory.Exists(clojureRoot))
-        {
-            throw new DirectoryNotFoundException(
-                $"Could not find Clojure project directory. Searched at: {clojureRoot}. " +
-                $"Assembly base: {assemblyDir}");
-        }
+        // Fallback: try from source directory
+        candidate = Path.GetFullPath(Path.Combine(assemblyDir, "..", "..", "..", "..", ".."));
+        if (Directory.Exists(Path.Combine(candidate, "db", "schemas")))
+            return candidate;
 
-        return clojureRoot;
+        throw new DirectoryNotFoundException(
+            $"Could not find db/ directory at repository root. " +
+            $"Assembly base: {assemblyDir}");
     }
 
     /// <summary>
@@ -79,13 +75,13 @@ public static class ClojureProjectHelper
     /// </summary>
     public static async Task SetupTestDatabase(NpgsqlConnection conn, string? supplementPath = null)
     {
-        var clojureRoot = ResolveClojureProjectRoot();
+        var repoRoot = ResolveClojureProjectRoot();
 
-        await ExecuteSqlFile(conn, Path.Combine(clojureRoot, "docker", "postgres", "3-create-schemas.sql"));
-        await ApplyMigrations(conn, Path.Combine(clojureRoot, "resources", "data-inventory", "migrations"));
-        await ApplyMigrations(conn, Path.Combine(clojureRoot, "resources", "consent", "migrations"));
-        await ExecuteSqlFile(conn, Path.Combine(clojureRoot, "test-resources", "data-inventory", "populate-db.sql"));
-        await ExecuteSqlFile(conn, Path.Combine(clojureRoot, "test-resources", "consent", "populate-db.sql"));
+        await ExecuteSqlFile(conn, Path.Combine(repoRoot, "db", "schemas", "3-create-schemas.sql"));
+        await ApplyMigrations(conn, Path.Combine(repoRoot, "db", "migrations", "data-inventory"));
+        await ApplyMigrations(conn, Path.Combine(repoRoot, "db", "migrations", "consent"));
+        await ExecuteSqlFile(conn, Path.Combine(repoRoot, "db", "seed", "data-inventory", "populate-db.sql"));
+        await ExecuteSqlFile(conn, Path.Combine(repoRoot, "db", "seed", "consent", "populate-db.sql"));
 
         if (supplementPath != null && File.Exists(supplementPath))
             await ExecuteSqlFile(conn, supplementPath);

@@ -1,0 +1,50 @@
+-----------------------------------------
+-- TICS-4800 Role-based access control --
+-----------------------------------------
+
+-- The set of permissions is defined by current app's resources & actions (static info)
+INSERT INTO consent.permission (id, name)
+VALUES
+-- 1-10 IDs are reserved for a global purposes (API-level permissions for ex.)
+(1, 'ACCESS_SERVICE_API'),
+-- END of 1-10 IDs
+(12, 'READ_USER_INFO'),
+(13, 'UPDATE_USER_INFO'),
+(14, 'DELETE_USER_INFO'),
+(15, 'CREATE_TEXT'),
+(16, 'READ_TEXT'),
+(17, 'UPDATE_TEXT'),
+(18, 'PUBLISH_TEXT'),
+(19, 'DELETE_TEXT'),
+(20, 'CREATE_TEXT_FIELD'),
+(21, 'READ_TEXT_FIELD'),
+(22, 'UPDATE_TEXT_FIELD'),
+(23, 'PUBLISH_TEXT_FIELD'),
+(24, 'DELETE_TEXT_FIELD'),
+(25, 'CREATE_CONSENT'),
+(26, 'READ_CONSENT'),
+(27, 'UPDATE_CONSENT'),
+(28, 'DELETE_CONSENT'),
+(29, 'CREATE_CONSENT_REFERENCE_DATA'),
+(30, 'READ_CONSENT_REFERENCE_DATA'),
+(31, 'UPDATE_CONSENT_REFERENCE_DATA'),
+(32, 'DELETE_CONSENT_REFERENCE_DATA'),
+(33, 'CREATE_CONSENT_EXPRESSION'),
+(34, 'READ_CONSENT_EXPRESSION'),
+(35, 'UPDATE_CONSENT_EXPRESSION'),
+(36, 'DELETE_CONSENT_EXPRESSION'),
+(37, 'CREATE_CONSENT_EXPRESSION_TEXT'),
+(38, 'READ_CONSENT_EXPRESSION_TEXT'),
+(39, 'UPDATE_CONSENT_EXPRESSION_TEXT'),
+(40, 'DELETE_CONSENT_EXPRESSION_TEXT'),
+(41, 'CREATE_CONSENT_EXPRESSION_TEXT_LANGUAGE'),
+(42, 'READ_CONSENT_EXPRESSION_TEXT_LANGUAGE'),
+(43, 'UPDATE_CONSENT_EXPRESSION_TEXT_LANGUAGE'),
+(44, 'DELETE_CONSENT_EXPRESSION_TEXT_LANGUAGE'),
+(45, 'CREATE_TEST'),
+(46, 'READ_TEST'),
+-- Temporal permissions (are going to be removed after owner/product-based filtering is implemented)
+(101, 'ACCESS_TELENOR_AS'),
+(102, 'ACCESS_TELENOR_DENMARK'),
+(103, 'ACCESS_TELENOR_SWEDEN');
+-- END of Temporal permissions

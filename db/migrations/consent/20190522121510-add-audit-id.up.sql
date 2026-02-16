@@ -1,0 +1,1 @@
+ALTER TABLE consent.user_consent_audit_trail ADD COLUMN id SERIAL PRIMARY KEY;

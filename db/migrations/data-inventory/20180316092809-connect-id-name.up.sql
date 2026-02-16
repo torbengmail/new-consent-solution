@@ -1,0 +1,1 @@
+ALTER TABLE data_inventory.product ADD COLUMN connect_id_name TEXT;

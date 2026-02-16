@@ -1,0 +1,1 @@
+ALTER TABLE consent.user ADD is_connect_id BOOLEAN NOT NULL DEFAULT FALSE;

@@ -1,0 +1,4 @@
+INSERT INTO consent.permission (id, name) VALUES
+  (47, 'CREATE_DSR_TRACKING_DATA'),
+  (48, 'READ_DSR_TRACKING_DATA'),
+  (49, 'UPDATE_DSR_TRACKING_DATA');

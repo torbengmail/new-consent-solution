@@ -1,0 +1,1 @@
+DROP TABLE IF EXISTS consent.user_consent_last_usage;

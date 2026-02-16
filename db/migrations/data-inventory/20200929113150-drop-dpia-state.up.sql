@@ -1,0 +1,1 @@
+DROP TABLE data_inventory.dpia_state;
